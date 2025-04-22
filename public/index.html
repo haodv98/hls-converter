@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ⓜ️ Prima</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow-x: hidden;
+            color: white;
+        }
+
+        .video-container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            scroll-snap-align: start;
+            background: #000;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-list {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            margin: 0;
+            scroll-behavior: smooth;
+        }
+
+        .upload-btn {
+            position: fixed;
+            bottom: 85px; /* Moved up to avoid video controls */
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 16px;
+            background: rgb(254, 44, 85); /* TikTok-like red color */
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .upload-btn:hover {
+            background: rgb(254, 44, 85);
+            transform: translateX(-50%) scale(1.1);
+        }
+
+        .upload-btn svg {
+            transition: transform 0.3s ease;
+        }
+
+        .upload-btn:hover svg {
+            transform: translateY(-2px);
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a1a;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+            color: white;
+            min-width: 300px;
+        }
+
+        .popup.active {
+            display: block;
+            animation: popupFadeIn 0.3s ease;
+        }
+
+        @keyframes popupFadeIn {
+            from { opacity: 0; transform: translate(-50%, -60%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+
+        .popup h2 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .popup input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: white;
+        }
+
+        .popup button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .popup button[type="submit"] {
+            background: #ff5733;
+            color: white;
+        }
+
+        .popup button[type="button"] {
+            background: #333;
+            color: white;
+        }
+
+        .popup button:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .video-container.loading::before {
+            content: 'Loading...';
+            position: absolute;
+            color: white;
+            font-size: 16px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 16px;
+            border-radius: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Video Controls Customization */
+        video::-webkit-media-controls {
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+        }
+
+        video::-webkit-media-controls-panel {
+            padding-bottom: 40px;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .video-list::-webkit-scrollbar {
+            display: none;
+        }
+        .video-list {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Video Overlay Information */
+        .video-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 2;
+            max-width: 80%;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .video-info h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Video Actions */
+        .video-actions {
+            position: absolute;
+            right: 20px;
+            bottom: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 2;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <button class="upload-btn" onclick="showUploadPopup()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 4V16M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M4 20H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </button>
+    
+    <div id="uploadPopup" class="popup">
+        <h2>Upload Video</h2>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" name="video" accept="video/mp4" required>
+            <button type="submit">Upload</button>
+            <button type="button" onclick="hideUploadPopup()">Cancel</button>
+        </form>
+    </div>
+    
+    <div class="video-list" id="videoList"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        // Show/hide upload popup
+        function showUploadPopup() {
+            document.getElementById('uploadPopup').classList.add('active');
+        }
+        function hideUploadPopup() {
+            document.getElementById('uploadPopup').classList.remove('active');
+        }
+
+        // Load videos and create video elements
+        async function loadVideos() {
+            const response = await fetch('/videos');
+            const videos = await response.json();
+            const videoList = document.getElementById('videoList');
+            videoList.innerHTML = '';
+
+            videos.forEach(video => {
+                const videoContainer = document.createElement('div');
+                videoContainer.className = 'video-container';
+                
+                const videoElement = document.createElement('video');
+                videoElement.className = 'video';
+                videoElement.controls = true;
+                videoElement.muted = true;
+                videoElement.setAttribute('playsinline', '');
+
+                const videoInfo = document.createElement('div');
+                videoInfo.className = 'video-info';
+                videoInfo.innerHTML = `
+                    <h3>${video.split('/')[0]}</h3>
+                `;
+
+                const videoActions = document.createElement('div');
+                videoActions.className = 'video-actions';
+                videoActions.innerHTML = `
+                    <button class="action-btn">❤️</button>
+                    <button class="action-btn">💬</button>
+                    <button class="action-btn">⤴️</button>
+                `;
+
+                videoContainer.dataset.url = `https://prima-sol.s3.ap-southeast-1.amazonaws.com/${video}`;
+                
+                videoContainer.appendChild(videoElement);
+                videoContainer.appendChild(videoInfo);
+                videoContainer.appendChild(videoActions);
+                videoList.appendChild(videoContainer);
+
+                // Thiết lập nguồn HLS
+                const videoUrl = videoContainer.dataset.url;
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(videoUrl);
+                    hls.attachMedia(videoElement);
+                    hls.on(Hls.Events.BUFFER_APPENDING, () => videoContainer.classList.add('loading'));
+                    hls.on(Hls.Events.BUFFER_APPENDED, () => videoContainer.classList.remove('loading'));
+                    // Preload video kế tiếp
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        const nextVideo = videoContainer.nextElementSibling?.querySelector('video');
+                        if (nextVideo && !nextVideo.src) {
+                            const nextUrl = videoContainer.nextElementSibling.dataset.url;
+                            const nextHls = new Hls();
+                            nextHls.loadSource(nextUrl);
+                            nextHls.attachMedia(nextVideo);
+                        }
+                    });
+                } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    videoElement.src = videoUrl;
+                }
+            });
+
+            setupVideoObservers();
+        }
+
+        // Intersection Observer để tự động phát/tạm dừng video (Bước 4)
+        function setupVideoObservers() {
+            const videos = document.querySelectorAll('.video');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target;
+                    const videoContainer = video.parentElement;
+
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
+                        // Phát video đang trong khung nhìn
+                        video.play().catch(err => console.error('Play error:', err));
+                        // Tạm dừng các video khác
+                        videos.forEach(otherVideo => {
+                            if (otherVideo !== video) {
+                                otherVideo.pause();
+                            }
+                        });
+                    } else {
+                        // Tạm dừng video khi ra khỏi khung nhìn
+                        video.pause();
+                    }
+                });
+            }, {
+                threshold: 0.7 // Phát khi 70% video nằm trong khung nhìn
+            });
+
+            videos.forEach(video => observer.observe(video));
+        }
+
+        // Handle form submission
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            alert(result.message || result.error);
+            hideUploadPopup();
+            loadVideos();
+        });
+
+        // Load videos on page load
+        window.onload = loadVideos;
+    </script>
+</body>
+</html>
