@@ -3,8 +3,8 @@ version: '3.8'
 services:
   app:
     build: .
-    ports:
-      - "${PORT}:${PORT}"
+    expose:
+      - "${PORT}"
     env_file:
       - .env
     volumes:
@@ -17,3 +17,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
