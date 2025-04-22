@@ -3,7 +3,7 @@ const express = require('express');
 const multer = require('multer');
 const ffmpeg = require('fluent-ffmpeg');
 const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
-const { createTerminus } = require('@godaddy/terminus');
+// const { createTerminus } = require('@godaddy/terminus');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -23,46 +23,73 @@ const s3Client = new S3Client({
 });
 
 // Health check function
-async function healthCheck() {
-    // Check S3 connection
-    try {
-        await s3Client.send(new ListObjectsV2Command({
-            Bucket: process.env.S3_BUCKET,
-            MaxKeys: 1
-        }));
-    } catch (error) {
-        throw new Error('S3 connection failed');
-    }
+// async function healthCheck() {
+//     try {
+//         // Basic server check
+//         if (!server.listening) {
+//             throw new Error('Server is not listening');
+//         }
 
-    // Check FFmpeg installation
-    try {
-        await new Promise((resolve, reject) => {
-            ffmpeg.ffprobe('test', (err) => {
-                if (err && err.code === 'ENOENT') {
-                    reject(new Error('FFmpeg not installed'));
-                }
-                resolve();
-            });
-        });
-    } catch (error) {
-        throw new Error('FFmpeg check failed');
-    }
+//         // Check S3 connection
+//         try {
+//             await s3Client.send(new ListObjectsV2Command({
+//                 Bucket: process.env.S3_BUCKET,
+//                 MaxKeys: 1
+//             }));
+//         } catch (error) {
+//             console.error('S3 health check failed:', error);
+//             // Don't fail health check for S3 issues in development
+//             if (process.env.NODE_ENV === 'production') {
+//                 throw new Error('S3 connection failed');
+//             }
+//         }
 
-    return { status: 'healthy' };
-}
+//         // Check FFmpeg installation
+//         try {
+//             await new Promise((resolve, reject) => {
+//                 ffmpeg.ffprobe('-version', (err) => {
+//                     if (err) {
+//                         reject(new Error('FFmpeg not installed'));
+//                     }
+//                     resolve();
+//                 });
+//             });
+//         } catch (error) {
+//             console.error('FFmpeg health check failed:', error);
+//             throw error;
+//         }
 
-// Terminus configuration
-const terminusOptions = {
-    healthChecks: {
-        '/healthcheck': healthCheck,
-        verbatim: true
-    },
-    timeout: 1000,
-    signals: ['SIGTERM', 'SIGINT']
-};
+//         return { status: 'healthy' };
+//     } catch (error) {
+//         console.error('Health check failed:', error);
+//         throw error;
+//     }
+// }
 
-// Initialize terminus
-createTerminus(server, terminusOptions);
+// // Terminus configuration
+// const terminusOptions = {
+//     healthChecks: {
+//         '/healthcheck': { status: 'healthy' },
+//         verbatim: true
+//     },
+//     timeout: 5000, // Increased timeout
+//     signals: ['SIGTERM', 'SIGINT'],
+//     beforeShutdown: async () => {
+//         // Perform cleanup
+//         console.log('Cleaning up before shutdown...');
+//         await new Promise(resolve => setTimeout(resolve, 1000));
+//     },
+//     onSignal: async () => {
+//         console.log('Server is starting cleanup');
+//         // Add any cleanup logic here
+//     },
+//     onShutdown: async () => {
+//         console.log('Cleanup finished, server is shutting down');
+//     }
+// };
+
+// // Initialize terminus
+// createTerminus(server, terminusOptions);
 
 // Multer configuration for file upload
 const storage = multer.diskStorage({

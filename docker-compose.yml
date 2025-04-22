@@ -4,19 +4,17 @@ services:
   app:
     build: .
     expose:
-      - "${PORT}"
+      - "${PORT}:4000"
     env_file:
       - .env
+    environment:
+      - NODE_ENV=production
     volumes:
       - ./uploads:/usr/src/app/uploads
       - ./hls:/usr/src/app/hls
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${PORT}/healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    stop_grace_period: 30s  # Give container time to shutdown gracefully
+    init: true             # Use tini for proper signal handling
     networks:
       - app-network
 
