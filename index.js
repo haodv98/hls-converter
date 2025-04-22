@@ -238,7 +238,7 @@ app.get('/videos', async (req, res) => {
         const data = await s3Client.send(new ListObjectsV2Command(params));
         const videos = data.Contents
             .filter(obj => obj.Key.endsWith('/master.m3u8'))
-            .map(obj => obj.Key);
+            .map(obj => `https://${bucketName}.s3.ap-southeast-1.amazonaws.com/${obj.Key}`);
         res.json(videos);
     } catch (err) {
         res.status(500).json({ error: err.message });

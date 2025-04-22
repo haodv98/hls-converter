@@ -24,12 +24,24 @@
             position: relative;
             scroll-snap-align: start;
             background: #000;
+            padding: 0 15px; /* Add padding for better mobile display */
         }
 
         video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain; /* Changed from cover to contain */
+            max-width: 720px; /* Maximum width for videos */
+            max-height: 80vh; /* Maximum height relative to viewport */
+            margin: auto; /* Center the video */
+            background: #000; /* Background for letterboxing */
+        }
+
+        /* Add new style for mobile optimization */
+        @media (max-width: 768px) {
+            video {
+                max-height: 70vh;
+            }
         }
 
         .video-list {
@@ -192,8 +204,8 @@
         /* Video Actions */
         .video-actions {
             position: absolute;
-            right: 20px;
-            bottom: 120px;
+            right: 32%;
+            bottom: 280px;
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -217,6 +229,44 @@
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.1);
         }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #fff;
+            border-top: 4px solid rgb(254, 44, 85);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 18px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -234,6 +284,11 @@
             <button type="submit">Upload</button>
             <button type="button" onclick="hideUploadPopup()">Cancel</button>
         </form>
+    </div>
+    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Uploading video...</div>
     </div>
     
     <div class="video-list" id="videoList"></div>
@@ -268,7 +323,7 @@
                 const videoInfo = document.createElement('div');
                 videoInfo.className = 'video-info';
                 videoInfo.innerHTML = `
-                    <h3>${video.split('/')[0]}</h3>
+                    <h3>${video.replace("https://prima-sol.s3.ap-southeast-1.amazonaws.com/", "").split('/')[0]}</h3>
                 `;
 
                 const videoActions = document.createElement('div');
@@ -279,7 +334,7 @@
                     <button class="action-btn">⤴️</button>
                 `;
 
-                videoContainer.dataset.url = `https://prima-sol.s3.ap-southeast-1.amazonaws.com/${video}`;
+                videoContainer.dataset.url = `${video}`;
                 
                 videoContainer.appendChild(videoElement);
                 videoContainer.appendChild(videoInfo);
@@ -344,15 +399,29 @@
         // Handle form submission
         document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            alert(result.message || result.error);
-            hideUploadPopup();
-            loadVideos();
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            try {
+                loadingOverlay.classList.add('active');
+                const formData = new FormData(e.target);
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                alert(result.message);
+                hideUploadPopup();
+                loadVideos();
+            } catch (error) {
+                alert(error.message || 'An error occurred during upload');
+            } finally {
+                loadingOverlay.classList.remove('active');
+            }
         });
 
         // Load videos on page load
