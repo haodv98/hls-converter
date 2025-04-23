@@ -3,11 +3,11 @@ const express = require('express');
 const multer = require('multer');
 const ffmpeg = require('fluent-ffmpeg');
 const { S3Client, PutObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
-// const { createTerminus } = require('@godaddy/terminus');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const sanitize = require('sanitize-filename');
+const storageService = require('./services/storage');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,75 +21,6 @@ const s3Client = new S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
     }
 });
-
-// Health check function
-// async function healthCheck() {
-//     try {
-//         // Basic server check
-//         if (!server.listening) {
-//             throw new Error('Server is not listening');
-//         }
-
-//         // Check S3 connection
-//         try {
-//             await s3Client.send(new ListObjectsV2Command({
-//                 Bucket: process.env.S3_BUCKET,
-//                 MaxKeys: 1
-//             }));
-//         } catch (error) {
-//             console.error('S3 health check failed:', error);
-//             // Don't fail health check for S3 issues in development
-//             if (process.env.NODE_ENV === 'production') {
-//                 throw new Error('S3 connection failed');
-//             }
-//         }
-
-//         // Check FFmpeg installation
-//         try {
-//             await new Promise((resolve, reject) => {
-//                 ffmpeg.ffprobe('-version', (err) => {
-//                     if (err) {
-//                         reject(new Error('FFmpeg not installed'));
-//                     }
-//                     resolve();
-//                 });
-//             });
-//         } catch (error) {
-//             console.error('FFmpeg health check failed:', error);
-//             throw error;
-//         }
-
-//         return { status: 'healthy' };
-//     } catch (error) {
-//         console.error('Health check failed:', error);
-//         throw error;
-//     }
-// }
-
-// // Terminus configuration
-// const terminusOptions = {
-//     healthChecks: {
-//         '/healthcheck': { status: 'healthy' },
-//         verbatim: true
-//     },
-//     timeout: 5000, // Increased timeout
-//     signals: ['SIGTERM', 'SIGINT'],
-//     beforeShutdown: async () => {
-//         // Perform cleanup
-//         console.log('Cleaning up before shutdown...');
-//         await new Promise(resolve => setTimeout(resolve, 1000));
-//     },
-//     onSignal: async () => {
-//         console.log('Server is starting cleanup');
-//         // Add any cleanup logic here
-//     },
-//     onShutdown: async () => {
-//         console.log('Cleanup finished, server is shutting down');
-//     }
-// };
-
-// // Initialize terminus
-// createTerminus(server, terminusOptions);
 
 // Multer configuration for file upload
 const storage = multer.diskStorage({
@@ -110,6 +41,8 @@ if (!fs.existsSync('./hls')) {
 
 // Serve static files
 app.use(express.static('public'));
+app.use('/uploads', express.static('uploads'));
+app.use('/hls', express.static('hls'));
 
 // Sanitize video name
 function getSanitizedVideoName(filename) {
@@ -229,16 +162,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Replace the /videos route
 app.get('/videos', async (req, res) => {
     try {
-        const bucketName = process.env.S3_BUCKET;
-        const params = {
-            Bucket: bucketName
-        };
-        const data = await s3Client.send(new ListObjectsV2Command(params));
-        const videos = data.Contents
-            .filter(obj => obj.Key.endsWith('/master.m3u8'))
-            .map(obj => `https://${bucketName}.s3.ap-southeast-1.amazonaws.com/${obj.Key}`);
+        const videos = await storageService.listVideos();
         res.json(videos);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -307,7 +234,6 @@ app.get('/api/playlists', async (req, res) => {
 app.post('/upload', upload.single('video'), async (req, res) => {
     try {
         const file = req.file;
-        const bucketName = process.env.S3_BUCKET;
         const videoName = path.parse(file.filename).name;
         const sanitizedVideoName = getSanitizedVideoName(videoName);
         const outputDir = path.join('./hls', sanitizedVideoName);
@@ -317,27 +243,29 @@ app.post('/upload', upload.single('video'), async (req, res) => {
             fs.mkdirSync(outputDir);
         }
 
-        // Upload original video file to S3
-        const originalVideoKey = `${sanitizedVideoName}/original/${file.filename}`;
-        await uploadToS3(file.path, bucketName, originalVideoKey);
-
         // Convert to HLS
         await convertToHLS(file.path, outputDir, videoName);
 
-        // Upload HLS files to S3 under the same prefix as original video
-        await uploadDirectoryToS3(outputDir, bucketName, sanitizedVideoName);
+        // Upload files
+        const originalVideoPath = await storageService.uploadFile(
+            file.path, 
+            `${sanitizedVideoName}/original/${file.filename}`
+        );
+        const hlsFiles = await storageService.uploadDirectory(
+            outputDir, 
+            sanitizedVideoName
+        );
 
         // Clean up local files
         fs.unlinkSync(file.path);
         fs.rmSync(outputDir, { recursive: true });
 
-        // Return success response with file locations
         res.json({
             success: true,
             message: 'Video uploaded and converted successfully',
             data: {
-                originalVideo: `https://${bucketName}.s3.ap-southeast-1.amazonaws.com/${originalVideoKey}`,
-                masterPlaylist: `https://${bucketName}.s3.ap-southeast-1.amazonaws.com/${sanitizedVideoName}/master.m3u8`
+                originalVideo: originalVideoPath,
+                masterPlaylist: hlsFiles.find(url => url.endsWith('master.m3u8'))
             }
         });
     } catch (err) {
