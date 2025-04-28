@@ -3,87 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ⓜ️ Prima</title>
+    <title>Prima Brok</title>
+    <!-- <favicon href="Logo.svg" type="image/svg" /> -->
+    <link rel="icon" type="image/svg" href="Logo.svg">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 0;
-            background: #000;
-            overflow-x: hidden;
-            color: white;
+            background: #f5f5f5;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 220px;
+            background: #fff;
+            height: 100vh;
+            padding: 20px;
+            z-index: 10;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            margin-inline-start: 20px;
+        }
+
+        .menu {
+            gap: 12px;
+            display: flex;
+            flex-direction: column;
+            margin-block-start: 30px;
+        }
+
+        .menu-item {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #555;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            color: #000;
+        }
+
+        .menu-item.active {
+            background: #3372D1;
+            padding: 10px 8px;
+            gap: 4px;
+            display: flex;
+            border-radius: 8px;
+            color: #fff;
+        }
+
+        .main-content {
+            flex: 1;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .video-list {
+            height: 100%;
+            width: 100%;
+            max-width: 480px;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory; /* Thay đổi từ proximity sang mandatory */
+            position: relative;
+            scroll-behavior: smooth;
         }
 
         .video-container {
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             position: relative;
-            scroll-snap-align: start;
+            width: 100%;
+            height: 90vh;
+            margin-block: 60px;
+            aspect-ratio: 9 / 16;
+            border-radius: 12px;
+            overflow: hidden;
             background: #000;
-            padding: 0 15px; /* Add padding for better mobile display */
+            scroll-snap-align: center;
+            scroll-snap-stop: always;
         }
 
         video {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* Changed from cover to contain */
-            max-width: 720px; /* Maximum width for videos */
-            max-height: 80vh; /* Maximum height relative to viewport */
-            margin: auto; /* Center the video */
-            background: #000; /* Background for letterboxing */
+            object-fit: cover;
         }
 
-        /* Add new style for mobile optimization */
-        @media (max-width: 768px) {
-            video {
-                max-height: 70vh;
-            }
+        /* Thêm hiệu ứng smooth cho video controls */
+        video::-webkit-media-controls {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        video:hover::-webkit-media-controls {
+            opacity: 1;
+        }
+
+        .video-info {
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            color: white;
+            z-index: 2;
+        }
+
+        .video-info h3 {
+            margin: 0;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .video-info p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .video-actions {
+            position: absolute;
+            right: 20px;
+            bottom: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+        }
+
+        .action-btn span {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .video-list::-webkit-scrollbar {
+            display: none;
         }
 
         .video-list {
-            height: 100vh;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            margin: 0;
-            scroll-behavior: smooth;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
         .upload-btn {
             position: fixed;
-            bottom: 85px; /* Moved up to avoid video controls */
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 16px;
-            background: rgb(254, 44, 85); /* TikTok-like red color */
+            bottom: 20px;
+            right: 20px;
+            background: rgb(254, 44, 85);
             color: white;
             border: none;
             border-radius: 50%;
-            cursor: pointer;
-            z-index: 1000;
-            width: 48px;
-            height: 48px;
+            width: 60px;
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .upload-btn:hover {
-            background: rgb(254, 44, 85);
-            transform: translateX(-50%) scale(1.1);
-        }
-
-        .upload-btn svg {
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s ease;
         }
 
-        .upload-btn:hover svg {
-            transform: translateY(-2px);
+        .upload-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .upload-btn svg {
+            width: 24px;
+            height: 24px;
         }
 
         .popup {
@@ -95,7 +203,7 @@
             background: #1a1a1a;
             padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             z-index: 1000;
             color: white;
             min-width: 300px;
@@ -152,131 +260,35 @@
             opacity: 0.9;
             transform: scale(1.02);
         }
-
-        .video-container.loading::before {
-            content: 'Loading...';
-            position: absolute;
-            color: white;
-            font-size: 16px;
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 16px;
-            border-radius: 20px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        /* Video Controls Customization */
-        video::-webkit-media-controls {
-            background: linear-gradient(transparent, rgba(0,0,0,0.7));
-        }
-
-        video::-webkit-media-controls-panel {
-            padding-bottom: 40px;
-        }
-
-        /* Hide scrollbar but keep functionality */
-        .video-list::-webkit-scrollbar {
-            display: none;
-        }
-        .video-list {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
-        /* Video Overlay Information */
-        .video-info {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            z-index: 2;
-            max-width: 80%;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        .video-info h3 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        /* Video Actions */
-        .video-actions {
-            position: absolute;
-            right: 32%;
-            bottom: 280px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            z-index: 2;
-        }
-
-        .action-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .action-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        .loading-overlay.active {
-            display: flex;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #fff;
-            border-top: 4px solid rgb(254, 44, 85);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        .loading-text {
-            color: white;
-            font-size: 18px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
-    <button class="upload-btn" onclick="showUploadPopup()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 4V16M12 4L7 9M12 4L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M4 20H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-    </button>
-    
+    <div class="sidebar">
+        <div style="display: flex;">
+            <image src="Logo.svg" alt="Logo" style="width: 50px; height: auto; margin-bottom: 20px;">
+            <h2>Prima Brok</h2>
+        </div>
+        
+        <div class="menu">
+            <div class="menu-item">Dashboard</div>
+            <div class="menu-item">Sales Management</div>
+            <div class="menu-item">Real Estate</div>
+            <div class="menu-item active">Content Creator</div>
+            <div class="menu-item">Notification</div>
+            <div class="menu-item">Messages</div>
+            <div class="menu-item">Help</div>
+            <div class="menu-item">Settings</div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="video-list" id="videoList"></div>
+        <button class="upload-btn" onclick="showUploadPopup()">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+        </button>
+    </div>
+
     <div id="uploadPopup" class="popup">
         <h2>Upload Video</h2>
         <form id="uploadForm" enctype="multipart/form-data">
@@ -285,13 +297,6 @@
             <button type="button" onclick="hideUploadPopup()">Cancel</button>
         </form>
     </div>
-    
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div class="loading-text">Uploading video...</div>
-    </div>
-    
-    <div class="video-list" id="videoList"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
@@ -319,46 +324,26 @@
                 videoElement.controls = true;
                 videoElement.muted = true;
                 videoElement.setAttribute('playsinline', '');
+                videoElement.loop = true;
 
                 const videoInfo = document.createElement('div');
                 videoInfo.className = 'video-info';
                 videoInfo.innerHTML = `
-                    <h3>${video.replace("https://prima-sol.s3.ap-southeast-1.amazonaws.com/", "").split('/')[0]}</h3>
-                `;
-
-                const videoActions = document.createElement('div');
-                videoActions.className = 'video-actions';
-                videoActions.innerHTML = `
-                    <button class="action-btn">❤️</button>
-                    <button class="action-btn">💬</button>
-                    <button class="action-btn">⤴️</button>
+                    <h3>Video Title</h3>
+                    <p>Description goes here</p>
                 `;
 
                 videoContainer.dataset.url = `${video}`;
-                
                 videoContainer.appendChild(videoElement);
                 videoContainer.appendChild(videoInfo);
-                videoContainer.appendChild(videoActions);
                 videoList.appendChild(videoContainer);
 
-                // Thiết lập nguồn HLS
+                // Setup HLS
                 const videoUrl = videoContainer.dataset.url;
                 if (Hls.isSupported()) {
                     const hls = new Hls();
                     hls.loadSource(videoUrl);
                     hls.attachMedia(videoElement);
-                    hls.on(Hls.Events.BUFFER_APPENDING, () => videoContainer.classList.add('loading'));
-                    hls.on(Hls.Events.BUFFER_APPENDED, () => videoContainer.classList.remove('loading'));
-                    // Preload video kế tiếp
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        const nextVideo = videoContainer.nextElementSibling?.querySelector('video');
-                        if (nextVideo && !nextVideo.src) {
-                            const nextUrl = videoContainer.nextElementSibling.dataset.url;
-                            const nextHls = new Hls();
-                            nextHls.loadSource(nextUrl);
-                            nextHls.attachMedia(nextVideo);
-                        }
-                    });
                 } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
                     videoElement.src = videoUrl;
                 }
@@ -367,62 +352,69 @@
             setupVideoObservers();
         }
 
-        // Intersection Observer để tự động phát/tạm dừng video (Bước 4)
+        // Thêm function để xử lý video scroll
         function setupVideoObservers() {
             const videos = document.querySelectorAll('.video');
+            const videoContainers = document.querySelectorAll('.video-container');
+            
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const video = entry.target;
-                    const videoContainer = video.parentElement;
-
-                    if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
-                        // Phát video đang trong khung nhìn
+                    
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.8) {
                         video.play().catch(err => console.error('Play error:', err));
-                        // Tạm dừng các video khác
+                        
+                        // Tự động scroll đến container chứa video đang phát
+                        const container = video.closest('.video-container');
+                        container.scrollIntoView({ 
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                        
+                        // Pause các video khác
                         videos.forEach(otherVideo => {
                             if (otherVideo !== video) {
                                 otherVideo.pause();
+                                otherVideo.currentTime = 0;
                             }
                         });
                     } else {
-                        // Tạm dừng video khi ra khỏi khung nhìn
                         video.pause();
                     }
                 });
             }, {
-                threshold: 0.7 // Phát khi 70% video nằm trong khung nhìn
+                threshold: 0.8,
+                rootMargin: '-10% 0px'
             });
 
             videos.forEach(video => observer.observe(video));
-        }
-
-        // Handle form submission
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const loadingOverlay = document.getElementById('loadingOverlay');
             
-            try {
-                loadingOverlay.classList.add('active');
-                const formData = new FormData(e.target);
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
+            // Thêm sự kiện scroll để đảm bảo video luôn dừng ở giữa
+            const videoList = document.querySelector('.video-list');
+            let isScrolling;
+            
+            videoList.addEventListener('scroll', () => {
+                window.clearTimeout(isScrolling);
                 
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-                
-                alert(result.message);
-                hideUploadPopup();
-                loadVideos();
-            } catch (error) {
-                alert(error.message || 'An error occurred during upload');
-            } finally {
-                loadingOverlay.classList.remove('active');
-            }
-        });
+                isScrolling = setTimeout(() => {
+                    const containerHeight = videoList.clientHeight;
+                    const scrollTop = videoList.scrollTop;
+                    
+                    videoContainers.forEach(container => {
+                        const containerTop = container.offsetTop;
+                        const containerCenter = containerTop + (container.clientHeight / 2);
+                        const screenCenter = scrollTop + (containerHeight / 2);
+                        
+                        if (Math.abs(containerCenter - screenCenter) < 100) {
+                            container.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
+                        }
+                    });
+                }, 66); // Debounce scroll event
+            });
+        }
 
         // Load videos on page load
         window.onload = loadVideos;
